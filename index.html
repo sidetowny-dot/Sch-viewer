@@ -2,8 +2,8 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Sch-viewer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>スケジュールビューア</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <style>
@@ -12,12 +12,9 @@
       --bg-color: #f8f9fa;
       --border-color: #e0e0e0;
       --today-bg: #e8f0fe;
-      --old-color: #3c4043; /* 旧（既存）予定の文字色：黒ベース */
       --new-bg: #e6f4ea;
       --new-border: #34a853;
-      --holiday-color: #d93025;
-      --vacation-bg: #fce8e6; /* 年休・振替などのピンク背景 */
-      --vacation-color: #d93025; /* 赤字 */
+      --text-color: #3c4043;
     }
 
     * {
@@ -27,156 +24,88 @@
       -webkit-tap-highlight-color: transparent;
     }
 
-    html, body {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      position: fixed;
-      top: 0;
-      left: 0;
-    }
-
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       background-color: var(--bg-color);
       color: var(--text-color);
       display: flex;
       flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
     }
 
     header {
       background: #fff;
       border-bottom: 1px solid var(--border-color);
-      padding: 6px 12px;
+      padding: 10px 16px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      flex-shrink: 0;
       z-index: 10;
     }
 
     .header-title {
-      font-size: 1rem;
+      font-size: 1.2rem;
       font-weight: 600;
       display: flex;
       align-items: center;
-      gap: 4px;
-      cursor: pointer;
-    }
-
-    .header-title span:hover {
-      background: #e8f0fe;
-      border-radius: 4px;
-      padding: 2px 4px;
+      gap: 8px;
     }
 
     .nav-btns {
       display: flex;
-      gap: 4px;
-      align-items: center;
+      gap: 6px;
     }
 
     button {
       background: #fff;
       border: 1px solid var(--border-color);
       border-radius: 6px;
-      padding: 4px 8px;
-      font-size: 0.8rem;
+      padding: 6px 12px;
+      font-size: 0.85rem;
       font-weight: 500;
       cursor: pointer;
       color: var(--text-color);
     }
 
-    button.success {
-      background: var(--new-border);
-      color: #fff;
-      border: none;
-      font-weight: bold;
-    }
-
-    /* 月選択横スクロールバー */
-    .month-scroll-bar {
-      display: flex;
-      overflow-x: auto;
-      background: #fff;
-      border-bottom: 1px solid var(--border-color);
-      padding: 4px 8px;
-      gap: 6px;
-      white-space: nowrap;
-      flex-shrink: 0;
-      scrollbar-width: none;
-    }
-    .month-scroll-bar::-webkit-scrollbar {
-      display: none;
-    }
-
-    .month-tab {
-      padding: 3px 10px;
-      font-size: 0.75rem;
-      font-weight: 500;
-      color: #5f6368;
-      background: #f1f3f4;
-      border-radius: 12px;
-      cursor: pointer;
-      flex-shrink: 0;
-      transition: all 0.2s;
-    }
-
-    .month-tab.active {
+    button.primary {
       background: var(--primary-color);
       color: #fff;
-      font-weight: 600;
+      border: none;
     }
 
-    /* 月曜始まりの曜日ヘッダー */
     .weekdays {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
       background: #fff;
       border-bottom: 1px solid var(--border-color);
       text-align: center;
-      font-size: 0.7rem;
+      font-size: 0.75rem;
       font-weight: 600;
       color: #70757a;
-      padding: 4px 0;
-      flex-shrink: 0;
+      padding: 6px 0;
     }
-    .weekdays div:nth-child(6) { color: var(--primary-color); } /* 土曜日 */
-    .weekdays div:nth-child(7) { color: var(--holiday-color); } /* 日曜日 */
-
-    /* スワイプ対応カレンダービューポート */
-    .calendar-viewport {
-      flex: 1;
-      width: 100%;
-      overflow: hidden;
-      background: var(--border-color);
-      position: relative;
-      display: flex;
-    }
+    .weekdays div:first-child { color: #d93025; }
+    .weekdays div:last-child { color: #1a73e8; }
 
     .calendar-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
       grid-template-rows: repeat(6, 1fr);
-      width: 100%;
-      height: 100%;
+      flex: 1;
       background: var(--border-color);
       gap: 1px;
-      position: absolute;
-      top: 0;
-      left: 0;
-      will-change: transform;
+      overflow: hidden;
     }
 
     .day-cell {
       background: #fff;
-      padding: 1px 2px;
+      padding: 2px 4px;
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      cursor: pointer;
       position: relative;
-      height: 100%;
-      cursor: pointer; /* 全てのセルをタップ可能に */
     }
 
     .day-cell.other-month {
@@ -184,95 +113,63 @@
       opacity: 0.5;
     }
 
-    .day-header-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1px;
-      flex-shrink: 0;
-    }
-
     .day-number {
-      font-size: 0.7rem;
+      font-size: 0.75rem;
       font-weight: 500;
-      width: 16px;
-      height: 16px;
+      margin-bottom: 2px;
+      width: 20px;
+      height: 20px;
       display: flex;
       align-items: center;
       justify-content: center;
       border-radius: 50%;
     }
 
-    .day-cell.is-sunday .day-number,
-    .day-cell.is-holiday .day-number {
-      color: var(--holiday-color);
-      font-weight: bold;
-    }
-
-    .day-cell.is-saturday .day-number {
-      color: var(--primary-color);
-    }
-
     .day-cell.today .day-number {
-      background: var(--primary-color) !important;
-      color: #fff !important;
+      background: var(--primary-color);
+      color: #fff;
       font-weight: bold;
-    }
-
-    .holiday-name {
-      font-size: 0.5rem;
-      color: var(--holiday-color);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      line-height: 1;
-      margin-bottom: 1px;
-      flex-shrink: 0;
     }
 
     .events-container {
       display: flex;
       flex-direction: column;
-      gap: 1px;
+      gap: 2px;
       overflow: hidden;
-      flex: 1;
-      min-height: 0;
     }
 
     .event-chip {
-      font-size: 0.55rem;
-      padding: 1px 2px;
-      border-radius: 2px;
-      background: #f1f3f4;
-      color: var(--old-color);
-      white-space: normal;
+      font-size: 0.68rem;
+      padding: 1px 4px;
+      border-radius: 3px;
+      background: #e8f0fe;
+      color: var(--primary-color);
+      white-space: nowrap;
       overflow: hidden;
-      text-overflow: clip;
-      line-height: 1.1;
-      flex-shrink: 0;
-      max-height: 2.2em;
-      word-break: break-all;
+      text-overflow: ellipsis;
+      line-height: 1.2;
+    }
+
+    /* 複数日またぎ用の帯スタイル（上部に優先表示され、繋がった見た目にする） */
+    .event-chip.is-span {
+      background: #ceead6;
+      color: #0d652d;
+      font-weight: 600;
+      border-left: 3px solid #137333;
     }
 
     .event-chip.is-new {
       background: var(--new-bg);
       color: #137333;
-      border-left: 2px solid var(--new-border);
-      font-weight: bold;
-    }
-
-    .event-chip.is-vacation {
-      background: var(--vacation-bg) !important;
-      color: var(--vacation-color) !important;
+      border-left: 3px solid var(--new-border);
       font-weight: bold;
     }
 
     .more-events {
-      font-size: 0.5rem;
+      font-size: 0.65rem;
       color: #70757a;
-      padding-left: 1px;
-      flex-shrink: 0;
-      margin-top: auto;
+      padding-left: 2px;
+      margin-top: 1px;
     }
 
     .modal-overlay {
@@ -283,7 +180,6 @@
       justify-content: center;
       align-items: flex-end;
       z-index: 100;
-      transition: background 0.25s ease;
     }
 
     @media (min-width: 600px) {
@@ -305,8 +201,6 @@
       gap: 12px;
       box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
       overflow-y: auto;
-      will-change: transform;
-      transition: transform 0.2s cubic-bezier(0.1, 0.9, 0.2, 1);
     }
 
     @media (min-width: 600px) {
@@ -340,10 +234,15 @@
       padding: 10px;
       border-radius: 6px;
       background: #f8f9fa;
-      border-left: 4px solid var(--old-color);
+      border-left: 4px solid var(--primary-color);
       display: flex;
       flex-direction: column;
       gap: 4px;
+    }
+
+    .event-list-item.is-span {
+      border-left-color: #137333;
+      background: #f1f8f3;
     }
 
     .event-list-item.is-new {
@@ -351,19 +250,9 @@
       border-left-color: var(--new-border);
     }
 
-    .event-list-item.is-vacation-item {
-      background: var(--vacation-bg);
-      border-left-color: var(--vacation-color);
-    }
-
     .event-item-title {
       font-weight: 600;
       font-size: 0.95rem;
-      color: var(--old-color);
-    }
-
-    .event-list-item.is-vacation-item .event-item-title {
-      color: var(--vacation-color);
     }
 
     .event-item-time {
@@ -389,54 +278,51 @@
       margin-left: 6px;
     }
 
-    .badge-vacation {
+    .badge-span {
       display: inline-block;
       font-size: 0.65rem;
-      background: var(--vacation-color);
+      background: #137333;
       color: #fff;
       padding: 1px 4px;
       border-radius: 3px;
       margin-left: 6px;
     }
 
-    .search-input {
+    .import-area {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    textarea {
       width: 100%;
-      padding: 8px 12px;
+      height: 120px;
       border: 1px solid var(--border-color);
       border-radius: 6px;
-      font-size: 0.9rem;
-      outline: none;
-    }
-    .search-input:focus {
-      border-color: var(--primary-color);
+      padding: 8px;
+      font-family: monospace;
+      font-size: 0.8rem;
+      resize: vertical;
     }
   </style>
 </head>
 <body>
 
   <header>
-    <div class="header-title" id="currentMonthStr">
-      <span onclick="openYearPicker()" id="yearPart">2026年</span><span onclick="openMonthPicker()" id="monthPart">10月</span>
-    </div>
+    <div class="header-title" id="currentMonthStr">2026年10月</div>
     <div class="nav-btns">
       <button onclick="changeMonth(-1)">&lt;</button>
       <button onclick="goToday()">今日</button>
       <button onclick="changeMonth(1)">&gt;</button>
-      <button onclick="openSearchModal()" title="検索">🔍</button>
-      <input type="file" id="icsFileInput" accept=".ics" style="display:none" onchange="handleFileSelect(event)">
-      <button class="success" onclick="document.getElementById('icsFileInput').click()">📂 読込</button>
+      <button class="primary" onclick="openImportModal()">取り込み</button>
     </div>
   </header>
 
-  <div class="month-scroll-bar" id="monthScrollBar"></div>
-
   <div class="weekdays">
-    <div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div><div>日</div>
+    <div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div>
   </div>
 
-  <div class="calendar-viewport" id="calendarViewport">
-    <div class="calendar-grid" id="calendarGrid"></div>
-  </div>
+  <div class="calendar-grid" id="calendarGrid"></div>
 
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal-content" id="modalContent"></div>
@@ -445,663 +331,390 @@
   <script>
     let currentDate = new Date();
     let currentEvents = [];
-    let holidaysCache = {};
-    let currentModalDateStr = null;
 
-    window.onload = async () => {
+    window.onload = () => {
       loadSavedEvents();
-      loadCachedHolidays();
-      await fetchAndUpdateHolidays();
-      renderGrid();
-      buildMonthScrollBar();
-      setupSwipeEvents();
-      
-      window.addEventListener('resize', () => {
-        renderGrid();
-      });
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const action = urlParams.get('action');
+
+      if (action === 'import') {
+        autoImportFromClipboard();
+      } else {
+        renderCalendar();
+      }
     };
-
-    function openYearPicker() {
-      const currentYear = currentDate.getFullYear();
-      let html = `
-        <div class="modal-header">
-          <div class="modal-title">年を選択</div>
-          <button class="modal-close" onclick="closeModal()">✕</button>
-        </div>
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; max-height: 60vh; overflow-y: auto;">
-      `;
-      for (let y = currentYear - 5; y <= currentYear + 5; y++) {
-        html += `<button style="padding: 12px; font-size: 1rem; ${y === currentYear ? 'background:var(--primary-color); color:#fff; border:none;' : ''}" onclick="selectYear(${y})">${y}年</button>`;
-      }
-      html += `</div>`;
-      modalContent.innerHTML = html;
-      modalOverlay.style.display = 'flex';
-      modalContent.style.transform = 'translateY(0)';
-    }
-
-    function selectYear(y) {
-      currentDate.setFullYear(y);
-      closeModal();
-      loadCachedHolidays();
-      fetchAndUpdateHolidays().then(() => {
-        renderGrid();
-        buildMonthScrollBar();
-      });
-    }
-
-    function openMonthPicker() {
-      const currentMonth = currentDate.getMonth();
-      let html = `
-        <div class="modal-header">
-          <div class="modal-title">月を選択</div>
-          <button class="modal-close" onclick="closeModal()">✕</button>
-        </div>
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
-      `;
-      for (let m = 0; m < 12; m++) {
-        html += `<button style="padding: 14px; font-size: 1rem; ${m === currentMonth ? 'background:var(--primary-color); color:#fff; border:none;' : ''}" onclick="selectMonth(${m})">${m + 1}月</button>`;
-      }
-      html += `</div>`;
-      modalContent.innerHTML = html;
-      modalOverlay.style.display = 'flex';
-      modalContent.style.transform = 'translateY(0)';
-    }
-
-    function selectMonth(m) {
-      currentDate.setMonth(m);
-      closeModal();
-      renderGrid();
-      buildMonthScrollBar();
-    }
-
-    function buildMonthScrollBar() {
-      const bar = document.getElementById('monthScrollBar');
-      bar.innerHTML = '';
-      const year = currentDate.getFullYear();
-      const activeMonth = currentDate.getMonth();
-
-      for (let y = year - 1; y <= year + 1; y++) {
-        for (let m = 0; m < 12; m++) {
-          const tab = document.createElement('div');
-          tab.className = `month-tab ${y === year && m === activeMonth ? 'active' : ''}`;
-          tab.innerText = `${y}年${m + 1}月`;
-          tab.onclick = () => {
-            currentDate.setFullYear(y);
-            currentDate.setMonth(m);
-            loadCachedHolidays();
-            fetchAndUpdateHolidays().then(() => {
-              renderGrid();
-              buildMonthScrollBar();
-            });
-          };
-          bar.appendChild(tab);
-          if (y === year && m === activeMonth) {
-            setTimeout(() => {
-              tab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-            }, 50);
-          }
-        }
-      }
-    }
-
-    function setupSwipeEvents() {
-      const viewport = document.getElementById('calendarViewport');
-      let startX = 0, startY = 0, isDragging = false;
-
-      viewport.addEventListener('touchstart', (e) => {
-        startX = e.touches[0].clientX;
-        startY = e.touches[0].clientY;
-        isDragging = true;
-      }, { passive: true });
-
-      viewport.addEventListener('touchmove', (e) => {
-        if (!isDragging) return;
-        const currentX = e.touches[0].clientX;
-        const currentY = e.touches[0].clientY;
-        const diffX = currentX - startX;
-        const diffY = currentY - startY;
-
-        if (Math.abs(diffX) > Math.abs(diffY)) {
-          const grid = document.getElementById('calendarGrid');
-          grid.style.transition = 'none';
-          grid.style.transform = `translateX(${diffX}px)`;
-        }
-      }, { passive: true });
-
-      viewport.addEventListener('touchend', (e) => {
-        if (!isDragging) return;
-        isDragging = false;
-        const endX = e.changedTouches[0].clientX;
-        const diffX = endX - startX;
-        const grid = document.getElementById('calendarGrid');
-        grid.style.transition = 'transform 0.2s ease-out';
-
-        if (Math.abs(diffX) > 60) {
-          if (diffX > 0) {
-            grid.style.transform = `translateX(100%)`;
-            setTimeout(() => {
-              currentDate.setMonth(currentDate.getMonth() - 1);
-              loadCachedHolidays();
-              fetchAndUpdateHolidays().then(() => {
-                renderGrid();
-                buildMonthScrollBar();
-              });
-            }, 200);
-          } else {
-            grid.style.transform = `translateX(-100%)`;
-            setTimeout(() => {
-              currentDate.setMonth(currentDate.getMonth() + 1);
-              loadCachedHolidays();
-              fetchAndUpdateHolidays().then(() => {
-                renderGrid();
-                buildMonthScrollBar();
-              });
-            }, 200);
-          }
-        } else {
-          grid.style.transform = `translateX(0px)`;
-        }
-      }, { passive: true });
-    }
-
-    function openSearchModal() {
-      modalContent.innerHTML = `
-        <div class="modal-header">
-          <div class="modal-title">スケジュール検索</div>
-          <button class="modal-close" onclick="closeModal()">✕</button>
-        </div>
-        <input type="text" class="search-input" id="searchInput" placeholder="キーワードを入力 (例: 会議, 出張)..." oninput="executeSearch(this.value)">
-        <div id="searchResults" style="display: flex; flex-direction: column; gap: 8px; max-height: 50vh; overflow-y: auto;">
-          <div style="font-size:0.85rem; color:#70757a; text-align:center; padding:10px;">キーワードを入力してください</div>
-        </div>
-      `;
-      modalOverlay.style.display = 'flex';
-      modalContent.style.transform = 'translateY(0)';
-      setTimeout(() => document.getElementById('searchInput').focus(), 100);
-    }
-
-    function executeSearch(keyword) {
-      const resultsContainer = document.getElementById('searchResults');
-      const q = keyword.trim().toLowerCase();
-      if (!q) {
-        resultsContainer.innerHTML = `<div style="font-size:0.85rem; color:#70757a; text-align:center; padding:10px;">キーワードを入力してください</div>`;
-        return;
-      }
-
-      const matched = currentEvents.filter(e => 
-        (e.title && e.title.toLowerCase().includes(q)) ||
-        (e.description && e.description.toLowerCase().includes(q)) ||
-        (e.location && e.location.toLowerCase().includes(q)) ||
-        (e.dateStr && e.dateStr.includes(q))
-      );
-
-      if (matched.length === 0) {
-        resultsContainer.innerHTML = `<div style="font-size:0.85rem; color:#d93025; text-align:center; padding:10px;">該当する予定が見つかりませんでした</div>`;
-        return;
-      }
-
-      resultsContainer.innerHTML = matched.map(e => `
-        <div class="event-list-item ${e.isNew ? 'is-new' : ''} ${isVacationText(e.title) ? 'is-vacation-item' : ''}" onclick="jumpToDate('${e.dateStr}')" style="cursor:pointer;">
-          <div class="event-item-title">${escapeHtml(e.title)} <span style="font-size:0.75rem; color:#5f6368; font-weight:normal;">(${e.dateStr})</span></div>
-          <div class="event-item-time">${e.timeStr || '終日'}</div>
-          ${e.location ? `<div class="event-item-detail">📍 ${escapeHtml(e.location)}</div>` : ''}
-        </div>
-      `).join('');
-    }
-
-    function jumpToDate(dateStr) {
-      const parts = dateStr.split('-');
-      if (parts.length === 3) {
-        currentDate.setFullYear(parseInt(parts[0]));
-        currentDate.setMonth(parseInt(parts[1]) - 1);
-        closeModal();
-        loadCachedHolidays();
-        fetchAndUpdateHolidays().then(() => {
-          renderGrid();
-          buildMonthScrollBar();
-        });
-      }
-    }
-
-    function handleFileSelect(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const text = e.target.result;
-        let parsed = [];
-        if (text && text.includes('BEGIN:VCALENDAR')) {
-          parsed = parseICS(text);
-        } else {
-          alert('有効なICSファイルではありません。');
-          return;
-        }
-
-        if (parsed.length > 0) {
-          saveEvents(parsed);
-          alert(`【同期成功】${parsed.length} 件の予定をアップデートしました！（NEWハイライト更新）`);
-        } else {
-          alert('スケジュールデータが見つかりませんでした。');
-        }
-        event.target.value = '';
-      };
-      reader.readAsText(file);
-    }
-
-    async function fetchAndUpdateHolidays() {
-      try {
-        const year = currentDate.getFullYear();
-        const res = await fetch(`https://holidays-jp.github.io/api/v1/${year}/date.json`);
-        if (res.ok) {
-          const data = await res.json();
-          holidaysCache = { ...holidaysCache, ...data };
-          localStorage.setItem(`sw_holidays_${year}`, JSON.stringify(data));
-        }
-      } catch (e) {
-        console.log('オフライン環境のため、保存済みのキャッシュ祝日データを使用します。');
-      }
-    }
-
-    function loadCachedHolidays() {
-      const year = currentDate.getFullYear();
-      const saved = localStorage.getItem(`sw_holidays_${year}`);
-      if (saved) { try { holidaysCache = JSON.parse(saved); } catch(e) { holidaysCache = {}; } }
-    }
 
     function loadSavedEvents() {
       const saved = localStorage.getItem('sw_events');
-      if (saved) { try { currentEvents = JSON.parse(saved); } catch(e) { currentEvents = []; } }
+      if (saved) {
+        try {
+          currentEvents = JSON.parse(saved);
+        } catch(e) {
+          currentEvents = [];
+        }
+      }
     }
 
     function saveEvents(newEvents) {
       const existingMap = new Map(currentEvents.map(e => [e.id, e]));
-      const processedEvents = newEvents.map(item => ({
-        ...item,
-        isNew: !existingMap.has(item.id)
-      }));
-      currentEvents = processedEvents;
+      
+      const mergedEvents = newEvents.map(item => {
+        const isNew = !existingMap.has(item.id);
+        return { ...item, isNew };
+      });
+
+      currentEvents = mergedEvents;
       localStorage.setItem('sw_events', JSON.stringify(currentEvents));
-      renderGrid();
+      renderCalendar();
     }
 
-    function renderGrid() {
+    // 日付文字列 (YYYY-MM-DD) に日数を加算するヘルパー
+    function addDaysToDateStr(dateStr, days) {
+      const parts = dateStr.split('-');
+      const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      d.setDate(d.getDate() + days);
+      return formatDate(d);
+    }
+
+    function renderCalendar() {
+      const grid = document.getElementById('calendarGrid');
+      grid.innerHTML = '';
+
       const year = currentDate.getFullYear();
       const month = currentDate.getMonth();
-      document.getElementById('yearPart').innerText = `${year}年`;
-      document.getElementById('monthPart').innerText = `${month + 1}月`;
 
-      const grid = document.getElementById('calendarGrid');
-      grid.style.transition = 'none';
-      grid.style.transform = 'translateX(0px)';
+      document.getElementById('currentMonthStr').innerText = `${year}年${month + 1}月`;
 
       const firstDay = new Date(year, month, 1);
       const lastDay = new Date(year, month + 1, 0);
-      let startDayOfWeek = (firstDay.getDay() + 6) % 7;
-      const totalDays = lastDay.getDate();
-      const todayStr = formatDate(new Date());
 
-      let html = '';
+      const startDayOfWeek = firstDay.getDay();
+      const totalDays = lastDay.getDate();
+
+      const today = new Date();
+      const todayStr = formatDate(today);
+
       const prevLastDay = new Date(year, month, 0).getDate();
-      
-      // 前月の月末部分
-      let pM = month - 1, pY = year;
-      if (pM < 0) { pM = 11; pY--; }
       for (let i = startDayOfWeek - 1; i >= 0; i--) {
-        const dayNum = prevLastDay - i;
-        const dateStr = `${pY}-${String(pM + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
-        const dayEvents = currentEvents.filter(e => e.dateStr === dateStr);
-        const holidayName = holidaysCache[dateStr];
-        html += createDayCellHtml(dayNum, true, false, dateStr, null, holidayName, dayEvents);
+        const cell = createDayCell(prevLastDay - i, true);
+        grid.appendChild(cell);
       }
 
-      // 当月部分
       for (let day = 1; day <= totalDays; day++) {
         const dateObj = new Date(year, month, day);
         const dateStr = formatDate(dateObj);
         const isToday = (dateStr === todayStr);
-        const dayOfWeek = (dateObj.getDay() + 6) % 7;
-        const holidayName = holidaysCache[dateStr];
-        const dayEvents = currentEvents.filter(e => e.dateStr === dateStr);
 
-        html += createDayCellHtml(day, false, isToday, dateStr, dayOfWeek, holidayName, dayEvents);
-      }
+        const cell = createDayCell(day, false, isToday, dateStr);
+        
+        // --- 修正：指定日付がイベントの期間（startDate 〜 endDate）に含まれるものを抽出 ---
+        const dayEvents = currentEvents.filter(e => {
+          if (e.startDate && e.endDate) {
+            return dateStr >= e.startDate && dateStr <= e.endDate;
+          }
+          return e.dateStr === dateStr;
+        });
 
-      // 翌月の月初部分
-      const totalCells = startDayOfWeek + totalDays;
-      const nextDays = (totalCells <= 35) ? (35 - totalCells) : (42 - totalCells);
-      let nM = month + 1, nY = year;
-      if (nM > 11) { nM = 0; nY++; }
-      for (let i = 1; i <= nextDays; i++) {
-        const dateStr = `${nY}-${String(nM + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-        const dayEvents = currentEvents.filter(e => e.dateStr === dateStr);
-        const holidayName = holidaysCache[dateStr];
-        html += createDayCellHtml(i, true, false, dateStr, null, holidayName, dayEvents);
-      }
-      grid.innerHTML = html;
+        // --- 修正：複数日またぎの予定を優先的に上部に並べるためのソート ---
+        dayEvents.sort((a, b) => {
+          const aIsSpan = (a.startDate && a.endDate && a.startDate !== a.endDate) ? 1 : 0;
+          const bIsSpan = (b.startDate && b.endDate && b.startDate !== b.endDate) ? 1 : 0;
+          if (aIsSpan !== bIsSpan) {
+            return bIsSpan - aIsSpan; // スパン（またぎ）がある方を上に
+          }
+          return 0;
+        });
 
-      setTimeout(() => {
-        const cells = grid.querySelectorAll('.day-cell');
-        if (cells.length > 0) {
-          const sampleCell = cells[0];
-          const cellHeight = sampleCell.clientHeight;
-          const headerHeight = sampleCell.querySelector('.day-header-row')?.clientHeight || 18;
-          const holidayHeight = sampleCell.querySelector('.holiday-name')?.clientHeight || 0;
-          const availableHeight = cellHeight - headerHeight - holidayHeight - 4; 
+        const eventsContainer = document.createElement('div');
+        eventsContainer.className = 'events-container';
+
+        const maxDisplay = 3;
+        dayEvents.slice(0, maxDisplay).forEach(evt => {
+          const chip = document.createElement('div');
+          const isSpan = (evt.startDate && evt.endDate && evt.startDate !== evt.endDate);
           
-          const chipHeight = 16;
-          const maxVisibleChips = Math.max(1, Math.floor(availableHeight / chipHeight));
+          let chipClass = 'event-chip';
+          if (isSpan) {
+            chipClass += ' is-span';
+          } else if (evt.isNew) {
+            chipClass += ' is-new';
+          }
 
-          cells.forEach((cell, idx) => {
-            const dateStr = cell.getAttribute('data-date');
-            const dayEvents = currentEvents.filter(e => e.dateStr === dateStr);
-            updateCellEventsDisplay(cell, dayEvents, maxVisibleChips);
-          });
+          chip.className = chipClass;
+          chip.innerText = evt.title;
+          eventsContainer.appendChild(chip);
+        });
+
+        if (dayEvents.length > maxDisplay) {
+          const more = document.createElement('div');
+          more.className = 'more-events';
+          more.innerText = `他 ${dayEvents.length - maxDisplay} 件`;
+          eventsContainer.appendChild(more);
         }
-      }, 50);
-    }
 
-    function updateCellEventsDisplay(cellElement, events, maxChips) {
-      const container = cellElement.querySelector('.events-container');
-      if (!container) return;
-      if (events.length === 0) {
-        container.innerHTML = '';
-        return;
+        cell.appendChild(eventsContainer);
+        cell.onclick = () => openDayDetailModal(dateStr, dayEvents);
+        grid.appendChild(cell);
       }
 
-      let eventsHtml = '';
-      const displayCount = events.length > maxChips ? maxChips - 1 : maxChips;
+      const totalRendered = startDayOfWeek + totalDays;
+      const nextDays = 42 - totalRendered;
+      for (let i = 1; i <= nextDays; i++) {
+        const cell = createDayCell(i, true);
+        grid.appendChild(cell);
+      }
+    }
+
+    function createDayCell(dayNum, isOtherMonth = false, isToday = false, dateStr = '') {
+      const cell = document.createElement('div');
+      cell.className = `day-cell ${isOtherMonth ? 'other-month' : ''} ${isToday ? 'today' : ''}`;
       
-      events.slice(0, displayCount).forEach(evt => {
-        const timePrefix = evt.timeStr ? `${evt.timeStr} ` : '';
-        const vacationClass = isVacationText(evt.title) ? 'is-vacation' : '';
-        eventsHtml += `<div class="event-chip ${evt.isNew ? 'is-new' : ''} ${vacationClass}">${escapeHtml(timePrefix + evt.title)}</div>`;
-      });
-      if (events.length > displayCount) {
-        eventsHtml += `<div class="more-events">他 ${events.length - displayCount} 件</div>`;
-      }
-      container.innerHTML = eventsHtml;
-    }
-
-    function createDayCellHtml(dayNum, isOtherMonth = false, isToday = false, dateStr = '', dayOfWeek = null, holidayName = null, events = []) {
-      let classStr = `day-cell ${isOtherMonth ? 'other-month' : ''} ${isToday ? 'today' : ''}`;
-      if (!isOtherMonth && dayOfWeek !== null) {
-        if (dayOfWeek === 6 || holidayName) classStr += ' is-holiday';
-        else if (dayOfWeek === 5) classStr += ' is-saturday';
-      } else {
-        // 他月セルの場合も祝日や曜日の判定を可能にするため計算
-        const parts = dateStr.split('-');
-        if (parts.length === 3) {
-          const dObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-          const dW = (dObj.getDay() + 6) % 7;
-          if (dW === 6 || holidayName) classStr += ' is-holiday';
-          else if (dW === 5) classStr += ' is-saturday';
-        }
-      }
-      if (events.length > 0) classStr += ' has-events';
-      if (holidayName) classStr += ' is-holiday-cell';
-
-      // 全てのセルでクリック時にその日の詳細モーダルを開く
-      const onclickAttr = `onclick="openDayDetailModal('${dateStr}', ${escapeJson(events)}, '${escapeHtml(holidayName || '')}')"`;
-
-      let eventsHtml = '';
-      events.slice(0, 3).forEach(evt => {
-        const timePrefix = evt.timeStr ? `${evt.timeStr} ` : '';
-        const vacationClass = isVacationText(evt.title) ? 'is-vacation' : '';
-        eventsHtml += `<div class="event-chip ${evt.isNew ? 'is-new' : ''} ${vacationClass}">${escapeHtml(timePrefix + evt.title)}</div>`;
-      });
-      if (events.length > 3) {
-        eventsHtml += `<div class="more-events">他 ${events.length - 3} 件</div>`;
-      }
-
-      return `
-        <div class="${classStr}" data-date="${dateStr}" ${onclickAttr}>
-          <div class="day-header-row">
-            <div class="day-number">${dayNum}</div>
-          </div>
-          ${holidayName ? `<div class="holiday-name">${escapeHtml(holidayName)}</div>` : ''}
-          <div class="events-container">${eventsHtml}</div>
-        </div>
-      `;
-    }
-
-    function isVacationText(text) {
-      if (!text) return false;
-      const keywords = ['年休', '時間休', '振替', '振り替え'];
-      return keywords.some(keyword => text.includes(keyword));
+      const numSpan = document.createElement('div');
+      numSpan.className = 'day-number';
+      numSpan.innerText = dayNum;
+      
+      cell.appendChild(numSpan);
+      return cell;
     }
 
     function changeMonth(diff) {
-      const grid = document.getElementById('calendarGrid');
-      grid.style.transition = 'transform 0.2s ease-out';
-      grid.style.transform = diff > 0 ? 'translateX(-100%)' : 'translateX(100%)';
-      setTimeout(() => {
-        currentDate.setMonth(currentDate.getMonth() + diff);
-        loadCachedHolidays();
-        fetchAndUpdateHolidays().then(() => {
-          renderGrid();
-          buildMonthScrollBar();
-        });
-      }, 200);
+      currentDate.setMonth(currentDate.getMonth() + diff);
+      renderCalendar();
     }
 
-    async function goToday() {
+    function goToday() {
       currentDate = new Date();
-      loadCachedHolidays();
-      await fetchAndUpdateHolidays();
-      renderGrid();
-      buildMonthScrollBar();
+      renderCalendar();
     }
 
     const modalOverlay = document.getElementById('modalOverlay');
     const modalContent = document.getElementById('modalContent');
-    
-    function closeModal() { 
-      modalContent.style.transform = 'translateY(100%)';
-      modalOverlay.style.background = 'rgba(0,0,0,0)';
-      setTimeout(() => {
-        modalOverlay.style.display = 'none';
-        modalContent.style.transform = '';
-        modalOverlay.style.background = '';
-        currentModalDateStr = null;
-      }, 200);
-    }
-    
-    modalOverlay.onclick = (e) => { if (e.target === modalOverlay) closeModal(); };
 
-    function getDatesWithEvents() {
-      const dateSet = new Set(currentEvents.map(e => e.dateStr));
-      return Array.from(dateSet).sort();
+    function closeModal() {
+      modalOverlay.style.display = 'none';
     }
 
-    function getDayOfWeekInfo(dateStr) {
-      const parts = dateStr.split('-');
-      if (parts.length !== 3) return { text: '', color: '' };
-      const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-      const dayIndex = d.getDay();
-      const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
-      const text = `（${weekdays[dayIndex]}）`;
-      
-      let color = '';
-      if (dayIndex === 6) color = 'color: var(--primary-color);';
-      else if (dayIndex === 0 || holidaysCache[dateStr]) color = 'color: var(--holiday-color);';
-      
-      return { text, color };
-    }
+    modalOverlay.onclick = (e) => {
+      if (e.target === modalOverlay) closeModal();
+    };
 
-    function openDayDetailModal(dateStr, events, holidayName) {
-      currentModalDateStr = dateStr;
-      const dayEvents = currentEvents.filter(e => e.dateStr === dateStr);
-      const dayInfo = getDayOfWeekInfo(dateStr);
-
+    function openDayDetailModal(dateStr, events) {
       modalContent.innerHTML = `
         <div class="modal-header">
-          <div class="modal-title">
-            <span id="modalTitleText">${dateStr}</span>
-            <span style="${dayInfo.color}">${dayInfo.text}</span>
-            ${holidayName ? `(${holidayName})` : ''}
-          </div>
+          <div class="modal-title">${dateStr} の予定</div>
           <button class="modal-close" onclick="closeModal()">✕</button>
         </div>
-        <div id="modalSwipeContainer" style="display: flex; flex-direction: column; gap: 8px; min-height: 100px; touch-action: pan-y;">
-          ${holidayName ? `<div style="background:#fce8e6; color:#d93025; padding:8px; border-radius:6px; font-weight:600; font-size:0.9rem;">🎌 祝日: ${holidayName}</div>` : ''}
-          ${dayEvents.length === 0 && !holidayName ? `<div style="font-size:0.85rem; color:#70757a; text-align:center; padding:20px;">予定はありません</div>` : ''}
-          ${dayEvents.map(e => {
-            const isVac = isVacationText(e.title);
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          ${events.length === 0 ? '<div style="color:#70757a; font-size:0.9rem;">予定はありません</div>' : ''}
+          ${events.map(e => {
+            const isSpan = (e.startDate && e.endDate && e.startDate !== e.endDate);
+            let itemClass = 'event-list-item';
+            if (isSpan) itemClass += ' is-span';
+            else if (e.isNew) itemClass += ' is-new';
+
             return `
-              <div class="event-list-item ${e.isNew ? 'is-new' : ''} ${isVac ? 'is-vacation-item' : ''}">
-                <div class="event-item-title">${escapeHtml(e.title)} ${e.isNew ? '<span class="badge-new">NEW</span>' : ''} ${isVac ? '<span class="badge-vacation">休暇</span>' : ''}</div>
-                <div class="event-item-time">${e.timeStr || '終日'}</div>
+              <div class="${itemClass}">
+                <div class="event-item-title">
+                  ${escapeHtml(e.title)}
+                  ${isSpan ? '<span class="badge-span">期間: ' + e.startDate + ' 〜 ' + e.endDate + '</span>' : ''}
+                  ${e.isNew ? '<span class="badge-new">NEW</span>' : ''}
+                </div>
+                <div class="event-item-time">${e.timeStr || (isSpan ? '期間予定 (終日)' : '終日')}</div>
                 ${e.location ? `<div class="event-item-detail">📍 ${escapeHtml(e.location)}</div>` : ''}
                 ${e.description ? `<div class="event-item-detail">📝 ${escapeHtml(e.description)}</div>` : ''}
               </div>
             `;
           }).join('')}
         </div>
-        <div style="font-size: 0.7rem; color: #70757a; text-align: center; margin-top: 4px;">◀ 左右スワイプで前後の予定日へ ｜ ▼ 下にスワイプして閉じる ▶</div>
       `;
       modalOverlay.style.display = 'flex';
-      modalContent.style.transform = 'translateY(0)';
-
-      setupModalInteractionEvents();
     }
 
-    function setupModalInteractionEvents() {
-      const modalBox = modalContent;
-      if (!modalBox) return;
+    function openImportModal() {
+      modalContent.innerHTML = `
+        <div class="modal-header">
+          <div class="modal-title">データインポート</div>
+          <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="import-area">
+          <label style="font-size:0.85rem; font-weight:600;">1. ファイルを選択 (.ics / .csv)</label>
+          <input type="file" id="fileInput" accept=".ics,.csv,.txt" onchange="handleFileSelect(event)">
+          
+          <label style="font-size:0.85rem; font-weight:600; margin-top:8px;">2. またはテキストを直接貼り付け</label>
+          <textarea id="pasteArea" placeholder="iCalendar(.ics)テキストを貼り付け..."></textarea>
 
-      let startX = 0, startY = 0, currentY = 0, isDragging = false;
+          <button class="primary" style="padding:10px; margin-top:6px;" onclick="processImport()">取り込み実行</button>
+        </div>
+      `;
+      modalOverlay.style.display = 'flex';
+    }
 
-      modalBox.ontouchstart = (e) => {
-        startX = e.touches[0].clientX;
-        startY = e.touches[0].clientY;
-        isDragging = true;
-        modalBox.style.transition = 'none';
+    function handleFileSelect(evt) {
+      const file = evt.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        document.getElementById('pasteArea').value = e.target.result;
       };
+      reader.readAsText(file);
+    }
 
-      modalBox.ontouchmove = (e) => {
-        if (!isDragging) return;
-        const currentX = e.touches[0].clientX;
-        currentY = e.touches[0].clientY;
-        const diffX = currentX - startX;
-        const diffY = currentY - startY;
+    function processImport() {
+      const text = document.getElementById('pasteArea').value.trim();
+      if (!text) {
+        alert('データを入力またはファイルを選択してください。');
+        return;
+      }
 
-        if (diffY > 0 && diffY > Math.abs(diffX)) {
-          modalBox.style.transform = `translateY(${diffY}px)`;
-        }
-      };
+      let parsed = [];
+      if (text.includes('BEGIN:VCALENDAR')) {
+        parsed = parseICS(text);
+      } else {
+        parsed = parseCSV(text);
+      }
 
-      modalBox.ontouchend = (e) => {
-        if (!isDragging) return;
-        isDragging = false;
-        const endX = e.changedTouches[0].clientX;
-        const endY = e.changedTouches[0].clientY;
-        const diffX = endX - startX;
-        const diffY = endY - startY;
+      if (parsed.length === 0) {
+        alert('有効なデータが検出されませんでした。');
+        return;
+      }
 
-        modalBox.style.transition = 'transform 0.2s cubic-bezier(0.1, 0.9, 0.2, 1)';
+      saveEvents(parsed);
+      closeModal();
+      alert(`${parsed.length} 件の予定を取り込みました。`);
+    }
 
-        if (diffY > 80 && diffY > Math.abs(diffX)) {
-          closeModal();
-          return;
+    async function autoImportFromClipboard() {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text && text.includes('BEGIN:VCALENDAR')) {
+          const parsed = parseICS(text);
+          if (parsed.length > 0) {
+            saveEvents(parsed);
+            alert(`【自動取込成功】ショートカット経由で ${parsed.length} 件の予定を更新しました！`);
+          }
         } else {
-          modalBox.style.transform = 'translateY(0)';
+          alert('クリップボードに有効なICSデータが見つかりませんでした。');
         }
-
-        if (Math.abs(diffX) > 50 && Math.abs(diffX) > Math.abs(diffY)) {
-          const datesWithEvents = getDatesWithEvents();
-          if (datesWithEvents.length === 0) return;
-
-          let currentIndex = datesWithEvents.indexOf(currentModalDateStr);
-          if (currentIndex === -1) {
-            datesWithEvents.push(currentModalDateStr);
-            datesWithEvents.sort();
-            currentIndex = datesWithEvents.indexOf(currentModalDateStr);
-          }
-
-          if (diffX > 0) {
-            if (currentIndex > 0) {
-              const prevDate = datesWithEvents[currentIndex - 1];
-              openDayDetailModal(prevDate, currentEvents.filter(e => e.dateStr === prevDate), holidaysCache[prevDate] || '');
-            }
-          } else {
-            if (currentIndex < datesWithEvents.length - 1 && currentIndex !== -1) {
-              const nextDate = datesWithEvents[currentIndex + 1];
-              openDayDetailModal(nextDate, currentEvents.filter(e => e.dateStr === nextDate), holidaysCache[nextDate] || '');
-            }
-          }
-        }
-      };
+      } catch (err) {
+        console.error('クリップボード読込エラー:', err);
+        alert('クリップボードの読み込み権限がありません。手動で取り込んでください。');
+      } finally {
+        window.history.replaceState({}, document.title, window.location.pathname);
+        renderCalendar();
+      }
     }
 
+    // --- 修正：ICSパース時にDTEND（翌日）を考慮して終了日を前日に補正するロジック ---
     function parseICS(icsText) {
       const events = [];
       const lines = icsText.split(/\r\n|\n|\r/);
-      let currentEvt = null, unfoldedLines = [];
+      let currentEvt = null;
+
+      let unfoldedLines = [];
       for (let i = 0; i < lines.length; i++) {
         let line = lines[i];
         if ((line.startsWith(' ') || line.startsWith('\t')) && unfoldedLines.length > 0) {
           unfoldedLines[unfoldedLines.length - 1] += line.trimStart();
-        } else { unfoldedLines.push(line); }
+        } else {
+          unfoldedLines.push(line);
+        }
       }
+
       unfoldedLines.forEach(line => {
-        if (line.startsWith('BEGIN:VEVENT')) { currentEvt = {}; }
-        else if (line.startsWith('END:VEVENT')) {
-          if (currentEvt && currentEvt.title && currentEvt.dateStr) {
-            currentEvt.id = `${currentEvt.dateStr}_${currentEvt.title}_${currentEvt.timeStr || ''}`;
+        if (line.startsWith('BEGIN:VEVENT')) {
+          currentEvt = {};
+        } else if (line.startsWith('END:VEVENT')) {
+          if (currentEvt && currentEvt.title && currentEvt.startDate) {
+            // 終了日が未設定の場合は開始日と同じにする
+            if (!currentEvt.endDate) {
+              currentEvt.endDate = currentEvt.startDate;
+            }
+            // 互換性のための単日用 dateStr
+            currentEvt.dateStr = currentEvt.startDate;
+            
+            currentEvt.id = `${currentEvt.startDate}_${currentEvt.endDate}_${currentEvt.title}`;
             events.push(currentEvt);
           }
           currentEvt = null;
         } else if (currentEvt) {
-          if (line.startsWith('SUMMARY:')) { currentEvt.title = line.replace(/^(SUMMARY)(;[^:]*)?:/, '').trim(); }
-          else if (line.startsWith('DTSTART')) {
-            const parts = line.split(':');
-            const propKey = parts[0];
-            const val = parts.slice(1).join(':').trim();
+          if (line.startsWith('SUMMARY:')) {
+            currentEvt.title = line.replace('SUMMARY:', '').trim();
+          } else if (line.startsWith('DTSTART')) {
+            const val = line.split(':')[1];
             if (val) {
-              const dt = parseICSTimeWithJST(val, propKey);
-              currentEvt.dateStr = dt.dateStr; currentEvt.timeStr = dt.timeStr;
+              const dt = parseICSTime(val);
+              currentEvt.startDate = dt.dateStr;
+              currentEvt.timeStr = dt.timeStr;
             }
-          } else if (line.startsWith('LOCATION:')) { currentEvt.location = line.replace(/^(LOCATION)(;[^:]*)?:/, '').trim(); }
-          else if (line.startsWith('DESCRIPTION:')) { currentEvt.description = line.replace(/^(DESCRIPTION)(;[^:]*)?:/, '').replace(/\\n/g, '\n').trim(); }
+          } else if (line.startsWith('DTEND')) {
+            const val = line.split(':')[1];
+            if (val) {
+              const dt = parseICSTime(val);
+              // 終日予定（VALUE=DATE形式や時刻がない場合など）はDTENDが翌日を指すため1日分巻き戻す
+              // 例: 20261028 〜 20261030 の場合、表示上は 20261028 〜 20261029 に補正
+              if (line.includes('VALUE=DATE') || !dt.timeStr) {
+                currentEvt.endDate = addDaysToDateStr(dt.dateStr, -1);
+              } else {
+                currentEvt.endDate = dt.dateStr;
+              }
+            }
+          } else if (line.startsWith('LOCATION:')) {
+            currentEvt.location = line.replace('LOCATION:', '').trim();
+          } else if (line.startsWith('DESCRIPTION:')) {
+            currentEvt.description = line.replace('DESCRIPTION:', '').replace(/\\n/g, '\n').trim();
+          }
         }
       });
+
       return events;
     }
 
-    function parseICSTimeWithJST(val, propKey) {
-      const cleanVal = val.trim();
-      const isDateOnly = (propKey && propKey.includes('VALUE=DATE')) || cleanVal.length === 8;
-      
-      if (isDateOnly) {
-        const y = cleanVal.substring(0, 4);
-        const m = cleanVal.substring(4, 6);
-        const d = cleanVal.substring(6, 8);
-        return { dateStr: `${y}-${m}-${d}`, timeStr: '' };
+    function parseICSTime(val) {
+      const cleanVal = val.replace(/[^0-9T]/g, '');
+      const year = cleanVal.substring(0, 4);
+      const month = cleanVal.substring(4, 6);
+      const day = cleanVal.substring(6, 8);
+      const dateStr = `${year}-${month}-${day}`;
+
+      let timeStr = '';
+      if (cleanVal.includes('T') && cleanVal.length >= 13) {
+        const idx = cleanVal.indexOf('T');
+        const hh = cleanVal.substring(idx + 1, idx + 3);
+        const mm = cleanVal.substring(idx + 3, idx + 5);
+        timeStr = `${hh}:${mm}`;
       }
 
-      let year = parseInt(cleanVal.substring(0, 4), 10);
-      let month = parseInt(cleanVal.substring(4, 6), 10) - 1;
-      let day = parseInt(cleanVal.substring(6, 8), 10);
-      let hour = parseInt(cleanVal.substring(9, 11), 10);
-      let min = parseInt(cleanVal.substring(11, 13), 10);
+      return { dateStr, timeStr };
+    }
 
-      const dateObj = new Date(Date.UTC(year, month, day, hour, min));
+    function parseCSV(csvText) {
+      const events = [];
+      const lines = csvText.split(/\r\n|\n|\r/);
 
-      if (cleanVal.endsWith('Z') || (propKey && propKey.includes('TZID=UTC'))) {
-        dateObj.setHours(dateObj.getHours() + 9);
-      }
+      lines.forEach(line => {
+        const parts = line.split(/,|\t/);
+        if (parts.length >= 2) {
+          const dateCandidate = parts[0].trim().replace(/\//g, '-');
+          const titleCandidate = parts[1].trim();
 
-      const yStr = dateObj.getUTCFullYear();
-      const mStr = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
-      const dStr = String(dateObj.getUTCDate()).padStart(2, '0');
-      const hStr = String(dateObj.getUTCHours()).padStart(2, '0');
-      const minStr = String(dateObj.getUTCMinutes()).padStart(2, '0');
+          if (dateCandidate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            events.push({
+              id: `${dateCandidate}_${titleCandidate}`,
+              title: titleCandidate,
+              startDate: dateCandidate,
+              endDate: dateCandidate,
+              dateStr: dateCandidate,
+              timeStr: parts[2] ? parts[2].trim() : '',
+              location: parts[3] ? parts[3].trim() : '',
+              description: parts[4] ? parts[4].trim() : ''
+            });
+          }
+        }
+      });
 
-      return {
-        dateStr: `${yStr}-${mStr}-${dStr}`,
-        timeStr: `${hStr}:${minStr}`
-      };
+      return events;
     }
 
     function formatDate(date) {
@@ -1112,12 +725,9 @@
     }
 
     function escapeHtml(str) {
-      if (!str) return '';
-      return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[m]);
-    }
-
-    function escapeJson(arr) {
-      return JSON.stringify(arr).replace(/"/g, '&quot;');
+      return str.replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+      })[m]);
     }
   </script>
 </body>
