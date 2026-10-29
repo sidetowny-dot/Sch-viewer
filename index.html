@@ -296,7 +296,6 @@
       }
     }
 
-    /* モーダル本体: フレックスボックスにして上下固定レイアウトを実現 */
     .modal-content {
       background: #fff;
       width: 100%;
@@ -319,7 +318,6 @@
       }
     }
 
-    /* 固定ヘッダー */
     .modal-header {
       display: flex;
       justify-content: space-between;
@@ -342,7 +340,6 @@
       padding: 4px 8px;
     }
 
-    /* スクロールする予定リスト部分 */
     .modal-body-scroll {
       flex: 1;
       overflow-y: auto;
@@ -350,9 +347,9 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
+      -webkit-overflow-scrolling: touch;
     }
 
-    /* 固定フッター */
     .modal-footer {
       flex-shrink: 0;
       font-size: 0.7rem;
@@ -1004,7 +1001,7 @@
           </div>
           <button class="modal-close" onclick="closeModal()">✕</button>
         </div>
-        <div class="modal-body-scroll" id="modalSwipeContainer">
+        <div class="modal-body-scroll" id="modalScrollBody">
           ${holidayName ? `<div style="background:#fce8e6; color:#d93025; padding:8px; border-radius:6px; font-weight:600; font-size:0.9rem;">🎌 祝日: ${holidayName}</div>` : ''}
           ${dayEvents.length === 0 && !holidayName ? `<div style="font-size:0.85rem; color:#70757a; text-align:center; padding:20px;">予定はありません</div>` : ''}
           ${dayEvents.map(e => {
@@ -1031,9 +1028,10 @@
 
     function setupModalInteractionEvents() {
       const modalBox = modalContent;
-      if (!modalBox) return;
+      const scrollBody = document.getElementById('modalScrollBody');
+      if (!modalBox || !scrollBody) return;
 
-      let startX = 0, startY = 0, currentY = 0, isDragging = false;
+      let startX = 0, startY = 0, isDragging = false;
 
       modalBox.ontouchstart = (e) => {
         startX = e.touches[0].clientX;
@@ -1045,12 +1043,16 @@
       modalBox.ontouchmove = (e) => {
         if (!isDragging) return;
         const currentX = e.touches[0].clientX;
-        currentY = e.touches[0].clientY;
+        const currentY = e.touches[0].clientY;
         const diffX = currentX - startX;
         const diffY = currentY - startY;
 
-        if (diffY > 0 && diffY > Math.abs(diffX)) {
+        // スクロール位置が一番上のとき（scrollTop <= 0）、かつ下に引っ張るジェスチャーのときだけモーダル全体を動かす
+        if (scrollBody.scrollTop <= 0 && diffY > 0 && diffY > Math.abs(diffX)) {
           modalBox.style.transform = `translateY(${diffY}px)`;
+        } else {
+          // スクロール途中または上方向への動きのときはモーダルを追随させず内部スクロールを優先
+          modalBox.style.transform = 'translateY(0)';
         }
       };
 
@@ -1064,13 +1066,15 @@
 
         modalBox.style.transition = 'transform 0.2s cubic-bezier(0.1, 0.9, 0.2, 1)';
 
-        if (diffY > 80 && diffY > Math.abs(diffX)) {
+        // 一番上から十分に下にスワイプされた場合は閉じる
+        if (scrollBody.scrollTop <= 0 && diffY > 80 && diffY > Math.abs(diffX)) {
           closeModal();
           return;
         } else {
           modalBox.style.transform = 'translateY(0)';
         }
 
+        // 左右スワイプ（前後の予定日へ切り替え）
         if (Math.abs(diffX) > 50 && Math.abs(diffX) > Math.abs(diffY)) {
           const datesWithEvents = getDatesWithEvents();
           if (datesWithEvents.length === 0) return;
