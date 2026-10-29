@@ -264,7 +264,6 @@
       font-weight: bold;
     }
 
-    /* 複数日（またがり）予定の帯スタイル */
     .event-chip.is-multi-day {
       background: #e8f0fe;
       color: var(--primary-color);
@@ -297,6 +296,7 @@
       }
     }
 
+    /* モーダル本体: フレックスボックスにして上下固定レイアウトを実現 */
     .modal-content {
       background: #fff;
       width: 100%;
@@ -307,11 +307,10 @@
       padding: 16px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
       box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
-      overflow-y: auto;
       will-change: transform;
       transition: transform 0.2s cubic-bezier(0.1, 0.9, 0.2, 1);
+      overflow: hidden;
     }
 
     @media (min-width: 600px) {
@@ -320,12 +319,14 @@
       }
     }
 
+    /* 固定ヘッダー */
     .modal-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       border-bottom: 1px solid var(--border-color);
       padding-bottom: 8px;
+      flex-shrink: 0;
     }
 
     .modal-title {
@@ -339,6 +340,27 @@
       border: none;
       cursor: pointer;
       padding: 4px 8px;
+    }
+
+    /* スクロールする予定リスト部分 */
+    .modal-body-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* 固定フッター */
+    .modal-footer {
+      flex-shrink: 0;
+      font-size: 0.7rem;
+      color: #70757a;
+      text-align: center;
+      padding-top: 8px;
+      border-top: 1px solid var(--border-color);
+      cursor: pointer;
     }
 
     .event-list-item {
@@ -469,12 +491,14 @@
           <div class="modal-title">年を選択</div>
           <button class="modal-close" onclick="closeModal()">✕</button>
         </div>
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; max-height: 60vh; overflow-y: auto;">
+        <div class="modal-body-scroll" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
       `;
       for (let y = currentYear - 5; y <= currentYear + 5; y++) {
         html += `<button style="padding: 12px; font-size: 1rem; ${y === currentYear ? 'background:var(--primary-color); color:#fff; border:none;' : ''}" onclick="selectYear(${y})">${y}年</button>`;
       }
-      html += `</div>`;
+      html += `</div>
+        <div class="modal-footer" onclick="closeModal()">閉じる</div>
+      `;
       modalContent.innerHTML = html;
       modalOverlay.style.display = 'flex';
       modalContent.style.transform = 'translateY(0)';
@@ -497,12 +521,14 @@
           <div class="modal-title">月を選択</div>
           <button class="modal-close" onclick="closeModal()">✕</button>
         </div>
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+        <div class="modal-body-scroll" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
       `;
       for (let m = 0; m < 12; m++) {
         html += `<button style="padding: 14px; font-size: 1rem; ${m === currentMonth ? 'background:var(--primary-color); color:#fff; border:none;' : ''}" onclick="selectMonth(${m})">${m + 1}月</button>`;
       }
-      html += `</div>`;
+      html += `</div>
+        <div class="modal-footer" onclick="closeModal()">閉じる</div>
+      `;
       modalContent.innerHTML = html;
       modalOverlay.style.display = 'flex';
       modalContent.style.transform = 'translateY(0)';
@@ -611,10 +637,13 @@
           <div class="modal-title">スケジュール検索</div>
           <button class="modal-close" onclick="closeModal()">✕</button>
         </div>
-        <input type="text" class="search-input" id="searchInput" placeholder="キーワードを入力 (例: 会議, 出張)..." oninput="executeSearch(this.value)">
-        <div id="searchResults" style="display: flex; flex-direction: column; gap: 8px; max-height: 50vh; overflow-y: auto;">
+        <div style="padding: 6px 0; flex-shrink: 0;">
+          <input type="text" class="search-input" id="searchInput" placeholder="キーワードを入力 (例: 会議, 出張)..." oninput="executeSearch(this.value)">
+        </div>
+        <div class="modal-body-scroll" id="searchResults" style="display: flex; flex-direction: column; gap: 8px;">
           <div style="font-size:0.85rem; color:#70757a; text-align:center; padding:10px;">キーワードを入力してください</div>
         </div>
+        <div class="modal-footer" onclick="closeModal()">閉じる</div>
       `;
       modalOverlay.style.display = 'flex';
       modalContent.style.transform = 'translateY(0)';
@@ -726,12 +755,10 @@
       renderGrid();
     }
 
-    // 指定日のイベントを取得する（複数日またがり予定は展開して各日に所属させる、またがり予定を上部に優先ソート）
     function getEventsForDate(targetDateStr) {
       let matched = [];
       currentEvents.forEach(evt => {
         if (evt.startDate && evt.endDate) {
-          // 複数日または範囲指定のある予定
           if (targetDateStr >= evt.startDate && targetDateStr <= evt.endDate) {
             matched.push({ ...evt, isMultiDay: evt.startDate !== evt.endDate });
           }
@@ -740,7 +767,6 @@
         }
       });
 
-      // 複数日（またがり）の予定を上側に優先ソート
       matched.sort((a, b) => {
         if (a.isMultiDay && !b.isMultiDay) return -1;
         if (!a.isMultiDay && b.isMultiDay) return 1;
@@ -769,7 +795,6 @@
       let html = '';
       const prevLastDay = new Date(year, month, 0).getDate();
       
-      // 前月の月末部分
       let pM = month - 1, pY = year;
       if (pM < 0) { pM = 11; pY--; }
       for (let i = startDayOfWeek - 1; i >= 0; i--) {
@@ -780,7 +805,6 @@
         html += createDayCellHtml(dayNum, true, false, dateStr, null, holidayName, dayEvents);
       }
 
-      // 当月部分
       for (let day = 1; day <= totalDays; day++) {
         const dateObj = new Date(year, month, day);
         const dateStr = formatDate(dateObj);
@@ -792,7 +816,6 @@
         html += createDayCellHtml(day, false, isToday, dateStr, dayOfWeek, holidayName, dayEvents);
       }
 
-      // 翌月の月初部分
       const totalCells = startDayOfWeek + totalDays;
       const nextDays = (totalCells <= 35) ? (35 - totalCells) : (42 - totalCells);
       let nM = month + 1, nY = year;
@@ -981,7 +1004,7 @@
           </div>
           <button class="modal-close" onclick="closeModal()">✕</button>
         </div>
-        <div id="modalSwipeContainer" style="display: flex; flex-direction: column; gap: 8px; min-height: 100px; touch-action: pan-y;">
+        <div class="modal-body-scroll" id="modalSwipeContainer">
           ${holidayName ? `<div style="background:#fce8e6; color:#d93025; padding:8px; border-radius:6px; font-weight:600; font-size:0.9rem;">🎌 祝日: ${holidayName}</div>` : ''}
           ${dayEvents.length === 0 && !holidayName ? `<div style="font-size:0.85rem; color:#70757a; text-align:center; padding:20px;">予定はありません</div>` : ''}
           ${dayEvents.map(e => {
@@ -996,7 +1019,9 @@
             `;
           }).join('')}
         </div>
-        <div style="font-size: 0.7rem; color: #70757a; text-align: center; margin-top: 4px;">◀ 左右スワイプで前後の予定日へ ｜ ▼ 下にスワイプして閉じる ▶</div>
+        <div class="modal-footer" onclick="closeModal()">
+          ◀ 左右スワイプで前後の予定日へ ｜ ▼ 下スワイプまたはタップして閉じる ▶
+        </div>
       `;
       modalOverlay.style.display = 'flex';
       modalContent.style.transform = 'translateY(0)';
@@ -1072,7 +1097,6 @@
       };
     }
 
-    // 複数日（DTSTART〜DTEND）に対応したICSパーサー
     function parseICS(icsText) {
       const events = [];
       const lines = icsText.split(/\r\n|\n|\r/);
@@ -1088,11 +1112,9 @@
         if (line.startsWith('BEGIN:VEVENT')) { currentEvt = {}; }
         else if (line.startsWith('END:VEVENT')) {
           if (currentEvt && currentEvt.title && currentEvt.startDate) {
-            // DTENDがある場合、指定日の前日までを終了日とする（例: 30日終了なら29日まで）
             if (currentEvt.endDate && currentEvt.endDate >= currentEvt.startDate) {
               let endD = new Date(currentEvt.endDate);
               if (!currentEvt.hasTime) {
-                // 終日予定の場合はDTENDの前日を最終日に補正
                 endD.setDate(endD.getDate() - 1);
                 currentEvt.endDate = formatDate(endD);
               }
